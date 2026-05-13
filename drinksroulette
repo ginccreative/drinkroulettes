@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drink Roulette</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Trebuchet MS', 'Lucida Grande', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1535 25%, #2d1b4e 50%, #0f2847 75%, #0a2540 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(20, 25, 45, 0.92);
+            border-radius: 30px;
+            padding: 40px 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #ff006e, #fb5607);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            animation: slideDown 0.6s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.95em;
+            margin-bottom: 35px;
+        }
+
+        .player-count-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .count-btn {
+            padding: 18px 10px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.3em;
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, #1a1f3a, #2d1b4e);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            animation: countBtnIn 0.5s ease-out backwards;
+        }
+
+        .count-btn:nth-child(1) { animation-delay: 0.1s; }
+        .count-btn:nth-child(2) { animation-delay: 0.2s; }
+        .count-btn:nth-child(3) { animation-delay: 0.3s; }
+        .count-btn:nth-child(4) { animation-delay: 0.4s; }
+        .count-btn:nth-child(5) { animation-delay: 0.5s; }
+        .count-btn:nth-child(6) { animation-delay: 0.6s; }
+        .count-btn:nth-child(7) { animation-delay: 0.7s; }
+        .count-btn:nth-child(8) { animation-delay: 0.8s; }
+
+        @keyframes countBtnIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.8); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .count-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .count-btn.selected {
+            background: linear-gradient(135deg, #ff006e, #fb5607);
+            color: white;
+            box-shadow: 0 8px 25px rgba(255, 0, 110, 0.4);
+            border-color: rgba(255, 255, 255, 0.3);
+            animation: pulse 0.6s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .start-btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.2em;
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+            margin-top: 20px;
+            animation: slideUp 0.6s ease 0.3s both;
+        }
+
+        .start-btn:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.5);
+        }
+
+        .start-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .player-setup {
+            margin-bottom: 20px;
+        }
+
+        .player-input-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .player-input-group label {
+            flex: 0 0 50px;
+            padding-top: 12px;
+            font-weight: 600;
+            color: #ff006e;
+            font-size: 0.95em;
+        }
+
+        .player-input-group input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            font-size: 1em;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            transition: all 0.3s;
+        }
+
+        .player-input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .player-input-group input:focus {
+            outline: none;
+            border-color: #ff006e;
+            box-shadow: 0 0 0 3px rgba(255, 0, 110, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .spinner-wheel {
+            width: 300px;
+            height: 300px;
+            margin: 30px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 1000px;
+            filter: drop-shadow(0 0 30px rgba(255, 0, 110, 0.6)) drop-shadow(0 0 60px rgba(251, 86, 7, 0.4));
+            animation: wheelBounce 3s ease-in-out infinite;
+        }
+
+        @keyframes wheelBounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .spinner-wheel.active-spin {
+            animation: none;
+            filter: drop-shadow(0 0 50px rgba(255, 0, 110, 0.8)) drop-shadow(0 0 80px rgba(251, 86, 7, 0.6));
+        }
+
+        .spinner-wheel svg {
+            width: 100%;
+            height: 100%;
+            transform-origin: center;
+        }
+
+        .spinner-wheel svg.idle {
+            animation: spin-wheel 4s linear infinite;
+        }
+
+        @keyframes spin-wheel {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .current-player {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1f3a, #2d1b4e);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideInLeft 0.6s ease;
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .spin-btn {
+            width: 100%;
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.3em;
+            font-weight: 800;
+            cursor: pointer;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: spinBtnPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes spinBtnPulse {
+            0%, 100% { 
+                box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4), 0 0 20px rgba(79, 172, 254, 0.2);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 12px 35px rgba(79, 172, 254, 0.6), 0 0 40px rgba(79, 172, 254, 0.4);
+                transform: scale(1.02);
+            }
+        }
+
+        .spin-btn:hover:not(:disabled) {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(79, 172, 254, 0.6);
+            animation: none;
+        }
+
+        .spin-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: scale(0.98);
+        }
+
+        .result-screen {
+            text-align: center;
+        }
+
+        .loser-name {
+            font-size: 2em;
+            font-weight: 900;
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 20px 0;
+            animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.3) rotate(-20deg); }
+            50% { transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+
+        .drink-icon {
+            font-size: 5em;
+            margin: 30px 0;
+            animation: drinkBounce 0.8s ease-in-out infinite;
+        }
+
+        @keyframes drinkBounce {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-30px) rotate(-5deg); }
+            50% { transform: translateY(-40px) rotate(5deg); }
+            75% { transform: translateY(-20px) rotate(-5deg); }
+        }
+
+        .next-btn, .restart-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .next-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .next-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .restart-btn {
+            background: linear-gradient(135deg, #f5576c, #f093fb);
+            color: white;
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.5);
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+        }
+
+        .tongue-twister-screen {
+            text-align: center;
+        }
+
+        .twister-text {
+            background: linear-gradient(135deg, #1a1f3a, #2d1b4e);
+            border: 2px solid rgba(255, 0, 110, 0.3);
+            border-radius: 15px;
+            padding: 30px 20px;
+            margin: 30px 0;
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.6;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            box-shadow: inset 0 0 20px rgba(255, 0, 110, 0.1);
+            animation: twistedPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes twistedPulse {
+            0%, 100% { 
+                border-color: rgba(255, 0, 110, 0.3);
+                box-shadow: inset 0 0 20px rgba(255, 0, 110, 0.1), 0 0 30px rgba(255, 0, 110, 0.2);
+            }
+            50% { 
+                border-color: rgba(255, 0, 110, 0.6);
+                box-shadow: inset 0 0 30px rgba(255, 0, 110, 0.2), 0 0 50px rgba(255, 0, 110, 0.4);
+            }
+        }
+
+        .twister-instruction {
+            color: #aaa;
+            font-size: 0.95em;
+            margin-bottom: 20px;
+            font-style: italic;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .challenge-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            animation: slideUp 0.6s ease;
+        }
+
+        .success-btn, .fail-btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .success-btn {
+            background: linear-gradient(135deg, #00d4ff, #0099ff);
+            color: white;
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+            animation: buttonFloatIn 0.7s ease 0.1s both;
+        }
+
+        .fail-btn {
+            background: linear-gradient(135deg, #ff006e, #fb5607);
+            color: white;
+            box-shadow: 0 6px 20px rgba(255, 0, 110, 0.4);
+            animation: buttonFloatIn 0.7s ease 0.2s both;
+        }
+
+        @keyframes buttonFloatIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.8); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .success-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.6);
+        }
+
+        .fail-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(255, 0, 110, 0.6);
+        }
+
+        #playerButtonsContainer {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .player-select-btn {
+            padding: 20px 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, #1a1f3a, #2d1b4e);
+            color: #fff;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            animation: playerBtnIn 0.5s ease-out backwards;
+        }
+
+        .player-select-btn:nth-child(1) { animation-delay: 0.1s; }
+        .player-select-btn:nth-child(2) { animation-delay: 0.2s; }
+        .player-select-btn:nth-child(3) { animation-delay: 0.3s; }
+        .player-select-btn:nth-child(4) { animation-delay: 0.4s; }
+        .player-select-btn:nth-child(5) { animation-delay: 0.5s; }
+        .player-select-btn:nth-child(6) { animation-delay: 0.6s; }
+        .player-select-btn:nth-child(7) { animation-delay: 0.7s; }
+        .player-select-btn:nth-child(8) { animation-delay: 0.8s; }
+        .player-select-btn:nth-child(9) { animation-delay: 0.9s; }
+        .player-select-btn:nth-child(10) { animation-delay: 1s; }
+
+        @keyframes playerBtnIn {
+            from { opacity: 0; transform: scale(0.7) rotateY(90deg); }
+            to { opacity: 1; transform: scale(1) rotateY(0deg); }
+        }
+
+        .player-select-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(255, 0, 110, 0.4);
+            border-color: #ff006e;
+            background: linear-gradient(135deg, #2d1b4e, #3d2b5e);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .spinner-wheel {
+                width: 240px;
+                height: 240px;
+            }
+
+            .drink-icon {
+                font-size: 3.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Setup Screen -->
+        <div class="screen active" id="setupScreen">
+            <h1>🎲 ROULETTE</h1>
+            <p class="subtitle">Select number of players</p>
+            <div class="player-count-selector">
+                <button class="count-btn" data-count="2">2</button>
+                <button class="count-btn" data-count="3">3</button>
+                <button class="count-btn selected" data-count="4">4</button>
+                <button class="count-btn" data-count="5">5</button>
+                <button class="count-btn" data-count="6">6</button>
+                <button class="count-btn" data-count="7">7</button>
+                <button class="count-btn" data-count="8">8</button>
+                <button class="count-btn" data-count="10">10</button>
+            </div>
+
+            <div class="player-setup" id="playerSetup"></div>
+
+            <button class="start-btn" id="startBtn">Start Game</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="screen" id="gameScreen">
+            <h1>🎲 ROULETTE</h1>
+            <div class="current-player">
+                <span id="currentPlayerName">Player 1</span>'s Turn
+            </div>
+            <div class="spinner-wheel" id="spinnerWheel"></div>
+            <button class="spin-btn" id="spinBtn">SPIN!</button>
+        </div>
+
+        <!-- Result Screen -->
+        <div class="screen" id="resultScreen">
+            <h1>🎲 LOSER!</h1>
+            <div class="loser-name" id="loserName">Player Name</div>
+            <div class="drink-icon">🍺</div>
+            <button class="next-btn" id="nextBtn">Skip to Next</button>
+            <button class="restart-btn" id="restartBtn">New Game</button>
+        </div>
+
+        <!-- Tongue Twister Screen -->
+        <div class="screen" id="twistedScreen">
+            <h1>🎲 LOSER!</h1>
+            <div class="loser-name" id="twistedLoserName">Player Name</div>
+            <div class="twister-instruction">Can you say this 3 times fast?</div>
+            <div class="twister-text" id="twistedText">Sally sells seashells by the seashore</div>
+            <p style="color: #aaa; margin: 20px 0;">If you nail it, pick someone to spin next!</p>
+            <div class="challenge-buttons">
+                <button class="success-btn" id="successBtn">✓ I Did It!</button>
+                <button class="fail-btn" id="failBtn">✗ I Failed</button>
+            </div>
+        </div>
+
+        <!-- Player Selection Screen -->
+        <div class="screen" id="playerSelectScreen">
+            <h1>🎲 PICK VICTIM!</h1>
+            <p class="subtitle" style="margin-bottom: 30px;">Who spins next?</p>
+            <div id="playerButtonsContainer"></div>
+            <button class="restart-btn" id="restartBtn2" style="margin-top: 30px;">🔄 New Game</button>
+        </div>
+    </div>
+
+    <script>
+        let players = [];
+        let currentPlayerIndex = 0;
+        let playerCount = 4;
+        let isSpinning = false;
+        let currentLoser = null;
+
+        const tongueTwisters = [
+            "Sixth sick sheikh's sixth sheep's sick",
+            "The sixth sick sheikh's sixth sheep's sick",
+            "Worcestershire sauce",
+            "Rural juror",
+            "Squirrel",
+            "Anemone",
+            "Otorhinolaryngologist",
+            "Aluminum linoleum",
+            "The lips, the teeth, the tip of the tongue",
+            "Irish wristwatch",
+            "Isthmus",
+            "Specific Pacific",
+            "Red leather, yellow leather",
+            "Black background, blue background",
+            "Toy boat",
+            "Three free throws",
+            "Unique New York, you need New York",
+            "Pad kid poured curd pulled cod",
+            "Brisk brave brigadiers brandished broad bright blades, blunderbusses, and bludgeons",
+            "Susie sits shelling sixty sunflower seeds",
+            "Thieves seize sesame seeds",
+            "Freshly fried fresh flesh",
+            "Shell surely shall shel shellfish shells",
+            "Six sleek slender slippery snakes slowly sliding southward",
+            "Knapsack straps",
+            "Sixth shimmering silver sisters swiftly sipping simmering soup",
+            "The quality of mercy is not strained, it droppeth as the gentle rain from heaven",
+            "Fuzzy wuzzy was a bear, fuzzy wuzzy had no hair",
+            "I scream, you scream, we all scream for ice cream",
+            "Peggy Babcock",
+            "Amongst our architectural plans are asphalt and asthmitic ruins",
+            "Highland cattle in the low lands",
+            "The thirty-three thieves thought that they thrilled the throne throughout Thursday",
+            "Preshrunk khaki",
+            "Tongue twisters twisted tongues",
+            "Cinnamon aluminum linoleum",
+            "Yare, yarder, yardstick, yardarm",
+            "Chester cheetah chased a chasing cheetah",
+            "How much wood could a woodchuck chuck if a woodchuck could chuck wood",
+            "Dental plan, Lisa needs dental plan",
+            "Swords, spears and shields should only be sharpened silently with smooth stone surfaces",
+            "The lips, the teeth, the tip of the tongue, the top of the teeth"
+        ];
+
+        const setupScreen = document.getElementById('setupScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const resultScreen = document.getElementById('resultScreen');
+        const twistedScreen = document.getElementById('twistedScreen');
+
+        // Player count selection
+        document.querySelectorAll('.count-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                playerCount = parseInt(this.dataset.count);
+                renderPlayerInputs();
+            });
+        });
+
+        // Initial render
+        renderPlayerInputs();
+
+        function renderPlayerInputs() {
+            const setupDiv = document.getElementById('playerSetup');
+            setupDiv.innerHTML = '';
+
+            for (let i = 1; i <= playerCount; i++) {
+                const group = document.createElement('div');
+                group.className = 'player-input-group';
+                group.innerHTML = `
+                    <label>P${i}</label>
+                    <input type="text" placeholder="Name" value="Player ${i}" data-index="${i-1}">
+                `;
+                setupDiv.appendChild(group);
+            }
+        }
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            const inputs = document.querySelectorAll('.player-input-group input');
+            players = Array.from(inputs).map(input => ({
+                name: input.value || input.placeholder,
+                index: parseInt(input.dataset.index)
+            }));
+
+            if (players.length < 2) {
+                alert('Need at least 2 players!');
+                return;
+            }
+
+            currentPlayerIndex = 0;
+            startGame();
+        });
+
+        function startGame() {
+            switchScreen(setupScreen, gameScreen);
+            updateCurrentPlayer();
+            createSpinner();
+        }
+
+        function updateCurrentPlayer() {
+            document.getElementById('currentPlayerName').textContent = players[currentPlayerIndex].name;
+        }
+
+        function createSpinner() {
+            const wheel = document.getElementById('spinnerWheel');
+            wheel.innerHTML = '';
+
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '280');
+            svg.setAttribute('height', '280');
+            svg.setAttribute('viewBox', '0 0 280 280');
+
+            // Create defs for gradients
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            
+            const sliceAngle = 360 / players.length;
+            const colors = [
+                '#FF006E', '#FB5607', '#FFBE0B', '#8338EC',
+                '#3A86FF', '#06FFA5', '#FF006E', '#FB5607',
+                '#FFBE0B', '#8338EC', '#3A86FF', '#06FFA5'
+            ];
+
+            // Add gradient definitions
+            players.forEach((player, index) => {
+                const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                gradient.setAttribute('id', `grad${index}`);
+                gradient.setAttribute('x1', '0%');
+                gradient.setAttribute('y1', '0%');
+                gradient.setAttribute('x2', '100%');
+                gradient.setAttribute('y2', '100%');
+
+                const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                stop1.setAttribute('offset', '0%');
+                stop1.setAttribute('stop-color', colors[index % colors.length]);
+                stop1.setAttribute('stop-opacity', '1');
+
+                const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                stop2.setAttribute('offset', '100%');
+                stop2.setAttribute('stop-color', colors[(index + 1) % colors.length]);
+                stop2.setAttribute('stop-opacity', '0.8');
+
+                gradient.appendChild(stop1);
+                gradient.appendChild(stop2);
+                defs.appendChild(gradient);
+            });
+
+            svg.appendChild(defs);
+
+            players.forEach((player, index) => {
+                const startAngle = (index * sliceAngle - 90) * (Math.PI / 180);
+                const endAngle = ((index + 1) * sliceAngle - 90) * (Math.PI / 180);
+
+                const x1 = 140 + 130 * Math.cos(startAngle);
+                const y1 = 140 + 130 * Math.sin(startAngle);
+                const x2 = 140 + 130 * Math.cos(endAngle);
+                const y2 = 140 + 130 * Math.sin(endAngle);
+
+                const largeArc = sliceAngle > 180 ? 1 : 0;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M 140 140 L ${x1} ${y1} A 130 130 0 ${largeArc} 1 ${x2} ${y2} Z`);
+                path.setAttribute('fill', `url(#grad${index})`);
+                path.setAttribute('stroke', 'rgba(255, 255, 255, 0.8)');
+                path.setAttribute('stroke-width', '2');
+                path.style.filter = 'drop-shadow(0 0 8px rgba(0, 0, 0, 0.5))';
+                path.style.cursor = 'pointer';
+
+                svg.appendChild(path);
+
+                // Add text label
+                const angle = startAngle + (endAngle - startAngle) / 2;
+                const textX = 140 + 75 * Math.cos(angle);
+                const textY = 140 + 75 * Math.sin(angle);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', textX);
+                text.setAttribute('y', textY);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'middle');
+                text.setAttribute('font-size', '13');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('pointer-events', 'none');
+                text.setAttribute('text-shadow', '0 0 5px rgba(0, 0, 0, 0.8)');
+                text.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.8)';
+                text.textContent = player.name.substring(0, 10);
+
+                svg.appendChild(text);
+            });
+
+            // Center circle with glow
+            const glowCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            glowCircle.setAttribute('cx', '140');
+            glowCircle.setAttribute('cy', '140');
+            glowCircle.setAttribute('r', '27');
+            glowCircle.setAttribute('fill', 'none');
+            glowCircle.setAttribute('stroke', 'rgba(255, 0, 110, 0.5)');
+            glowCircle.setAttribute('stroke-width', '1');
+            svg.appendChild(glowCircle);
+
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', '140');
+            circle.setAttribute('cy', '140');
+            circle.setAttribute('r', '25');
+            circle.setAttribute('fill', 'linear-gradient(135deg, #1a1f3a, #2d1b4e)');
+            circle.setAttribute('stroke', '#ff006e');
+            circle.setAttribute('stroke-width', '2');
+            svg.appendChild(circle);
+
+            // Center dot
+            const centerDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            centerDot.setAttribute('cx', '140');
+            centerDot.setAttribute('cy', '140');
+            centerDot.setAttribute('r', '8');
+            centerDot.setAttribute('fill', '#ff006e');
+            svg.appendChild(centerDot);
+
+            // Pointer at top (arrow)
+            const pointer = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            pointer.setAttribute('points', '140,15 155,40 125,40');
+            pointer.setAttribute('fill', '#ff006e');
+            pointer.setAttribute('filter', 'drop-shadow(0 0 5px rgba(255, 0, 110, 0.8))');
+            svg.appendChild(pointer);
+
+            wheel.appendChild(svg);
+            svg.classList.add('idle');
+        }
+
+        document.getElementById('spinBtn').addEventListener('click', spin);
+
+        function spin() {
+            if (isSpinning) return;
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+
+            const wheel = document.getElementById('spinnerWheel');
+            const svg = wheel.querySelector('svg');
+            
+            // Immediately remove idle class and animation
+            svg.classList.remove('idle');
+            svg.style.animation = 'none';
+            
+            // Get current rotation value
+            let currentRotation = 0;
+            const computedStyle = window.getComputedStyle(svg);
+            const transform = computedStyle.transform;
+            
+            if (transform !== 'none') {
+                const values = transform.split('(')[1].split(')')[0].split(',');
+                const a = values[0];
+                const b = values[1];
+                currentRotation = Math.round(Math.atan2(b, a) * (180 / Math.PI));
+            }
+            
+            const sliceAngle = 360 / players.length;
+            const randomSlice = Math.floor(Math.random() * players.length);
+            const randomOffset = Math.random() * sliceAngle;
+            const additionalRotation = 15 * 360 + randomSlice * sliceAngle + randomOffset;
+            const totalRotation = currentRotation + additionalRotation;
+
+            wheel.classList.add('active-spin');
+            
+            // Clear any previous transitions
+            svg.style.transition = 'none';
+            
+            // Force a reflow to apply the none transition
+            void svg.offsetHeight;
+            
+            // Now apply the spin animation
+            svg.style.transition = 'transform 4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            svg.style.transform = `rotate(${totalRotation}deg)`;
+
+            setTimeout(() => {
+                const loser = players[randomSlice];
+                currentLoser = loser;
+                showTongueTwister(loser);
+                isSpinning = false;
+                wheel.classList.remove('active-spin');
+                document.getElementById('spinBtn').disabled = false;
+                
+                // Restart idle animation after a brief delay
+                setTimeout(() => {
+                    svg.style.transition = '';
+                    svg.style.animation = '';
+                    svg.classList.add('idle');
+                }, 50);
+            }, 4000);
+        }
+
+        function showTongueTwister(loser) {
+            const randomTwister = tongueTwisters[Math.floor(Math.random() * tongueTwisters.length)];
+            document.getElementById('twistedLoserName').textContent = loser.name;
+            document.getElementById('twistedText').textContent = randomTwister;
+            createConfetti();
+            switchScreen(gameScreen, twistedScreen);
+        }
+
+        document.getElementById('successBtn').addEventListener('click', () => {
+            // They succeeded! Let them choose next player
+            showPlayerSelector();
+        });
+
+        document.getElementById('failBtn').addEventListener('click', () => {
+            // They failed! Move to next player automatically
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            updateCurrentPlayer();
+            switchScreen(twistedScreen, gameScreen);
+        });
+
+        function showPlayerSelector() {
+            switchScreen(twistedScreen, resultScreen);
+            document.getElementById('loserName').textContent = currentLoser.name + " passed!";
+            document.getElementById('nextBtn').textContent = "👉 Pick Next Player";
+            document.getElementById('nextBtn').style.display = 'block';
+            document.getElementById('restartBtn').textContent = "🔄 New Game";
+        }
+
+        function showResult(loser) {
+            document.getElementById('loserName').textContent = loser.name;
+            createConfetti();
+            switchScreen(gameScreen, resultScreen);
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (document.getElementById('nextBtn').textContent === "👉 Pick Next Player") {
+                // Show player selection
+                showPlayerSelectionMenu();
+            } else {
+                // Normal next player flow
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+                updateCurrentPlayer();
+                switchScreen(resultScreen, gameScreen);
+            }
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            switchScreen(resultScreen, setupScreen);
+        });
+
+        function showPlayerSelectionMenu() {
+            const container = document.getElementById('playerButtonsContainer');
+            container.innerHTML = '';
+
+            players.forEach((player, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'player-select-btn';
+                btn.textContent = player.name;
+                btn.addEventListener('click', () => {
+                    currentPlayerIndex = index;
+                    updateCurrentPlayer();
+                    switchScreen(document.getElementById('playerSelectScreen'), gameScreen);
+                });
+                container.appendChild(btn);
+            });
+
+            switchScreen(resultScreen, document.getElementById('playerSelectScreen'));
+        }
+
+        function switchScreen(from, to) {
+            from.classList.remove('active');
+            to.classList.add('active');
+        }
+
+        if (document.getElementById('restartBtn2')) {
+            document.getElementById('restartBtn2').addEventListener('click', () => {
+                switchScreen(document.getElementById('playerSelectScreen'), setupScreen);
+            });
+        }
+
+        function createConfetti() {
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#F7DC6F'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '-10px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                document.body.appendChild(confetti);
+
+                const duration = 2 + Math.random();
+                const xMove = (Math.random() - 0.5) * 200;
+
+                confetti.animate([
+                    { transform: 'translate(0, 0) rotate(0deg)', opacity: 1 },
+                    { transform: `translate(${xMove}px, 100vh) rotate(720deg)`, opacity: 0 }
+                ], {
+                    duration: duration * 1000,
+                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                });
+
+                setTimeout(() => confetti.remove(), duration * 1000);
+            }
+        }
+    </script>
+</body>
+</html>
